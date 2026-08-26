@@ -1,0 +1,135 @@
+# Default values for the gateway Helm chart. Override per-env
+# via `-f values.dev.yaml` / `-f values.prod.yaml`.
+
+image:
+  repository: ghcr.io/aidp/gateway
+  tag: ""          # chart appVersion by default
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 8000
+
+# Resource budget sized for a steady-state request volume of a
+# few hundred req/s per pod. Bursts (cold-cache, traffic
+# spikes) can use up to 2x before the HPA kicks in.
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 1000m
+    memory: 512Mi
+
+# Probes hit /healthz (liveness, unconditional 200) and
+# /readyz (readiness, returns 503 when Redis is unreachable).
+# The two are decoupled so a Redis blip does not cause the
+# kubelet to kill the pod — it just temporarily removes it
+# from the LB rotation.
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: 8000
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: 8000
+  initialDelaySeconds: 2
+  periodSeconds: 5
+  failureThreshold: 3
+
+# Graceful shutdown timeout must be shorter than the
+# kubelet's terminationGracePeriodSeconds (default 30s) so
+# the in-flight drain has time to complete.
+terminationGracePeriodSeconds: 25
+
+# Per-pod rate-limit configuration. The token bucket is
+# shared across requests on the same pod, so RPS is "per
+# pod" not "per node". Multiply by replicaCount to get the
+# effective cluster-wide ceiling.
+config:
+  rateLimitRPS: 200
+  rateLimitBurst: 400
+
+# Downstream service URLs. In-cluster these are typically
+# <service-name>.<namespace>.svc.cluster.local. Cross-
+# cluster deployments swap the host for an internal LB.
+downstreams:
+  iamURL: "http://iam:8001"
+  auditURL: "http://audit:8002"
+  notifyURL: "http://notify:8003"
+  agentURL: "http://agent-gateway:8004"
+  datasourcesURL: "http://datasource-service:8005"
+
+# Redis used for the rate-limit token bucket. The cluster
+# is shared across services in the platform; the gateway only
+# uses a small dedicated keyspace (ratelimit:*).
+redis:
+  addr: "redis:6379"
+
+# --- optional: autoscaling ---
+# Set `enabled: true` to render the HPA template. Replica
+# count, CPU target, and the min/max bounds are all driven
+# from these values; the Deployment's `replicaCount` is
+# ignored while the HPA is active.
+# autoscaling:
+#   enabled: false
+#   minReplicas: 2
+#   maxReplicas: 10
+#   targetCPUUtilizationPercentage: 80
+
+# --- optional: podDisruptionBudget ---
+# Renders a `policy/v1` PDB. `minAvailable: 1` keeps at
+# least one pod serving during voluntary disruptions
+# (node drain, cluster autoscaler scale-down, etc.).
+# podDisruptionBudget:
+#   enabled: false
+#   minAvailable: 1
+
+# --- optional: networkPolicy ---
+# Renders a `networking.k8s.io/v1` NetworkPolicy that
+# only allows ingress from namespaces matching the
+# `ingressNamespaceSelector` map. The default label
+# matches the platform's `policy.aidp.io/namespace`
+# convention used by the ingress controller.
+# networkPolicy:
+#   enabled: false
+#   ingressNamespaceSelector:
+#     policy.aidp.io/namespace: gateway
+
+# --- optional: serviceAccount ---
+# Renders a dedicated ServiceAccount for the gateway so
+# RBAC bindings are auditable. `name` overrides the
+# chart-minted name; `annotations` is a free-form map
+# (commonly used for IAM Role / Workload Identity
+# bindings on managed clusters).
+# serviceAccount:
+#   create: false
+#   name: ""          # defaults to the chart fullname
+#   annotations: {}
+
+# --- optional: ingress ---
+# Renders a `networking.k8s.io/v1` Ingress. Set
+# `className` to the ingress controller you deploy
+# (e.g. `nginx`, `traefik`); `hosts` is a list of
+# vhost rules and `tls` is a list of cert-manager
+# `Secret` references.
+# ingress:
+#   enabled: false
+#   className: nginx
+#   annotations: {}
+#   hosts:
+#     - host: gateway.example.com
+#       paths:
+#         - path: /
+#           pathType: Prefix
+#   tls:
+#     - secretName: gateway-tls
+#       hosts:
+#         - gateway.example.com

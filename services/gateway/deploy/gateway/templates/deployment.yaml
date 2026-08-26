@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "gateway.fullname" . }}
+  labels:
+    {{- include "gateway.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "gateway.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "gateway.selectorLabels" . | nindent 8 }}
+    spec:
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: gateway
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          env:
+            - name: AIDP_LISTEN_ADDR
+              value: ":{{ .Values.service.port }}"
+            - name: AIDP_SERVICE_NAME
+              value: {{ include "gateway.fullname" . }}
+            - name: AIDP_ENV
+              value: {{ .Values.env | default "dev" | quote }}
+            - name: AIDP_REDIS_ADDR
+              value: {{ .Values.redis.addr | quote }}
+            - name: AIDP_RATE_LIMIT_RPS
+              value: {{ .Values.config.rateLimitRPS | quote }}
+            - name: AIDP_RATE_LIMIT_BURST
+              value: {{ .Values.config.rateLimitBurst | quote }}
+            - name: AIDP_IAM_URL
+              value: {{ .Values.downstreams.iamURL | quote }}
+            - name: AIDP_AUDIT_URL
+              value: {{ .Values.downstreams.auditURL | quote }}
+            - name: AIDP_NOTIFY_URL
+              value: {{ .Values.downstreams.notifyURL | quote }}
+            - name: AIDP_AGENT_URL
+              value: {{ .Values.downstreams.agentURL | quote }}
+            - name: AIDP_DATASOURCE_URL
+              value: {{ .Values.downstreams.datasourcesURL | quote }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      # Distroless needs writable /tmp for the Go runtime's
+      # panic stack dumps; the root filesystem is read-only
+      # so we mount an emptyDir there.
+      volumes:
+        - name: tmp
+          emptyDir: {}

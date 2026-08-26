@@ -1,0 +1,15 @@
+apiVersion: v2
+name: aidp-notify
+description: AIDP Notify service — multi-channel notification (email/feishu/webhook/sms) with template rendering.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - notify
+  - notifications
+  - email
+  - feishu
+  - webhook
+maintainers:
+  - name: AIDP Platform Team
+    email: platform@aidp.local

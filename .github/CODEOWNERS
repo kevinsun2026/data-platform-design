@@ -1,0 +1,45 @@
+# CODEOWNERS — AIDP monorepo
+# Each line is a file pattern followed by one or more owners.
+# Order matters: later patterns take precedence. Last matching rule wins.
+# When a user opens a PR, GitHub requests review from the listed owners.
+
+# ---- Default owner for everything not matched below ----
+*                                    @aidp/platform-team
+
+# ---- Platform infrastructure: requires DevOps review ----
+/.github/                            @aidp/devops-team @aidp/platform-team
+/.pre-commit-config.yaml             @aidp/devops-team
+/Taskfile.yml                        @aidp/devops-team
+/pyproject.toml                      @aidp/devops-team
+/docker/                             @aidp/devops-team
+/deploy/                             @aidp/devops-team @aidp/security-team
+/proto/                              @aidp/api-team @aidp/platform-team
+
+# ---- Shared Python libraries ----
+/libs/python/aidp_common/            @aidp/platform-team
+/libs/python/aidp_db/                @aidp/db-team @aidp/platform-team
+/libs/python/aidp_auth/              @aidp/security-team @aidp/platform-team
+/libs/python/aidp_audit/             @aidp/security-team @aidp/platform-team
+/libs/python/aidp_notify/            @aidp/platform-team
+/libs/python/aidp_events/            @aidp/platform-team
+/libs/python/aidp_llm/               @aidp/ai-team @aidp/platform-team
+
+# ---- Backend services ----
+/services/gateway/                   @aidp/gateway-team @aidp/platform-team
+/services/iam/                       @aidp/iam-team @aidp/security-team
+/services/audit/                     @aidp/security-team @aidp/platform-team
+/services/notify/                    @aidp/platform-team
+/services/agent-gateway/             @aidp/ai-team @aidp/gateway-team
+/services/datasource/                @aidp/datasource-team @aidp/db-team
+
+# ---- Web console ----
+/web/                                @aidp/web-team @aidp/platform-team
+
+# ---- Design + planning docs require platform lead review ----
+/docs/superpowers/specs/             @aidp/platform-team
+/docs/superpowers/plans/             @aidp/platform-team
+
+# NOTE: GitHub team handles above (e.g. @aidp/platform-team) are placeholders.
+# Replace with the actual team slugs once the AIDP GitHub org is provisioned.
+# If you fork this repo or run a single-tenant installation, swap in your
+# own team or user handles.

@@ -1,0 +1,51 @@
+[project]
+name = "aidp-auth"
+version = "0.1.0"
+description = "AIDP shared auth library: JWT sign/verify + FastAPI dependency injection + tenant context"
+requires-python = ">=3.11"
+readme = "README.md"
+authors = [
+    { name = "AIDP Platform Team", email = "platform@aidp.local" },
+]
+license = { text = "Proprietary" }
+
+dependencies = [
+    "aidp-common>=0.1.0",
+    "aidp-db>=0.1.0",
+    "pydantic>=2.6",
+    "pyjwt>=2.8",
+    "fastapi>=0.110",
+]
+
+[tool.uv.sources]
+aidp-common = { workspace = true }
+aidp-db = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aidp_auth"]
+
+# Make the package type-checkable by downstream services.
+[tool.hatch.build.targets.wheel.force-include]
+"src/aidp_auth/py.typed" = "aidp_auth/py.typed"
+
+# ---------------------------------------------------------------------------
+# mypy: rely on the workspace-level [tool.mypy] (strict).
+# ---------------------------------------------------------------------------
+
+# ---------------------------------------------------------------------------
+# pytest: this package's tests run with `cd libs/python/aidp_auth && uv run pytest`.
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra --strict-markers --strict-config"
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+asyncio_mode = "auto"
+markers = [
+    "integration: marks tests as integration (deselect with '-m \"not integration\"')",
+    "e2e: marks tests as end-to-end (deselect with '-m \"not e2e\"')",
+]

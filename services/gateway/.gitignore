@@ -1,0 +1,8 @@
+# Go build / test artifacts local to the gateway.
+# The repo-level .gitignore already covers .DS_Store and the
+# generic .coverage; this file picks up service-specific
+# things the shared ignore shouldn't pick up.
+
+bin/
+*.test
+*.out

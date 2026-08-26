@@ -1,0 +1,127 @@
+# ============================================================================
+# AIDP monorepo — gitignore
+# Layered: protect agentic SDD workspace (.superpowers/), then standard
+# Python + Node + IDE + OS + K8s ignores.
+# ============================================================================
+
+# --- Agentic SDD workspace (brainstorm / spec / plan artifacts) ---
+.superpowers/
+
+# --- Local env / secrets (never commit) ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+.secrets.baseline
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+.eggs/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+parts/
+sdist/
+var/
+wheels/
+pip-log.txt
+pip-delete-this-directory.txt
+.installed.cfg
+MANIFEST
+
+# Virtual envs
+.venv/
+venv/
+env/
+.python-version
+
+# uv
+.uv-cache/
+
+# Test / coverage artifacts
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+.tox/
+.cache
+coverage/
+.pytest_tempdir/
+
+# Mypy / Ruff caches
+.mypy_cache/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# --- Node / pnpm / Next.js ---
+node_modules/
+.npm
+.pnpm-store/
+.pnpm-debug.log*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.next/
+out/
+.nuxt/
+.vite/
+.turbo/
+.turbo-*
+dist/
+
+# --- TypeScript / build outputs ---
+*.tsbuildinfo
+
+# --- IDE / Editor ---
+.idea/
+.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# --- Logs / runtime ---
+*.log
+logs/
+tmp/
+temp/
+*.pid
+*.sock
+
+# --- Docker / compose local data ---
+.docker/
+docker-data/
+postgres-data/
+redis-data/
+kafka-data/
+
+# --- K8s / Helm local ---
+*.swp
+.kube/
+kubeconfig*
+
+# --- Coverage / test output for Go services (Phase 1+) ---
+*.coverprofile
+coverage.txt

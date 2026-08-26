@@ -1,0 +1,15 @@
+apiVersion: v2
+name: gateway
+description: AIDP API gateway (Go + Hertz)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/aidp/gateway
+sources:
+  - https://github.com/aidp/gateway
+maintainers:
+  - name: gateway-team
+keywords:
+  - api-gateway
+  - hertz
+  - go

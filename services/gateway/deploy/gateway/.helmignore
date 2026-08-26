@@ -1,0 +1,21 @@
+# Patterns to ignore when building Helm packages.
+# Mirrors the default .helmignore so this chart produces the
+# same artifact as a fresh `helm create`.
+.DS_Store
+.git/
+.gitignore
+.bzr/
+.hg/
+.svn/
+*.tmproj
+*.swp
+*.bak
+*.tgz
+.idea/
+.vscode/
+*.iml
+*.orig
+*.rej
+README.md
+LICENSE
+*.md

@@ -1,0 +1,109 @@
+[project]
+name = "aidp-datasource"
+version = "0.1.0"
+description = "AIDP Datasource service: registry + encrypted credentials + 4 connectors (PG/MySQL/Oracle/Hive) over REST (8005) + gRPC + Kafka events"
+requires-python = ">=3.11"
+readme = "README.md"
+authors = [
+    { name = "AIDP Platform Team", email = "platform@aidp.local" },
+]
+license = { text = "Proprietary" }
+
+dependencies = [
+    "aidp-common>=0.1.0",
+    "aidp-db>=0.1.0",
+    "aidp-auth>=0.1.0",
+    "aidp-events>=0.1.0",
+    "fastapi>=0.110",
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    "SQLAlchemy>=2.0,<2.1",
+    "alembic>=1.13",
+    "psycopg[binary]>=3.1",
+    "uvicorn[standard]>=0.27",
+    "httpx>=0.27",
+    # AES-GCM at-rest encryption for credentials (consistent with audit crypto.py).
+    "cryptography>=42.0",
+    # gRPC server — internal ``DataSourceService.GetConnection`` used by the
+    # agent-gateway. ``grpcio`` is the official runtime; stubs are
+    # pre-generated under ``aidp_datasource.proto.gen`` so we do not need
+    # ``grpcio-tools`` at install time.
+    "grpcio>=1.60",
+    "protobuf>=4.25",
+    # 4 + 3 connectors. The drivers are lazy-imported in the connector
+    # implementations, so installing the package without an Oracle / Hive
+    # client library installed locally still works at import time; the
+    # ``test()`` / ``get_schema()`` calls will only fail when the operator
+    # actually configures a datasource of that type.
+    "asyncpg>=0.29",
+    "aiomysql>=0.2.0",
+    "oracledb>=2.0",
+    "pyhive>=0.7",
+    # 3 new connectors (Task 16).
+    # - MongoDB: ``pymongo`` (sync, wrapped via ``asyncio.to_thread``).
+    # - Doris:   ``pymysql`` (MySQL wire protocol; sync, wrapped).
+    # - Kafka:   ``aiokafka`` (async-first); ``httpx`` for the
+    #            Schema Registry REST client.
+    "pymongo>=4.6",
+    "pymysql>=1.1",
+    "aiokafka>=0.10",
+]
+
+[tool.uv.sources]
+aidp-common = { workspace = true }
+aidp-db = { workspace = true }
+aidp-auth = { workspace = true }
+aidp-events = { workspace = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/aidp_datasource"]
+
+# Make the package type-checkable by downstream services.
+[tool.hatch.build.targets.wheel.force-include]
+"src/aidp_datasource/py.typed" = "aidp_datasource/py.typed"
+
+# ---------------------------------------------------------------------------
+# mypy: rely on the workspace-level [tool.mypy] (strict) but relax
+# untyped-defs on tests (matches the root-level ``tests.*`` override).
+# ---------------------------------------------------------------------------
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+
+# ---------------------------------------------------------------------------
+# pytest: this service's tests run with `cd services/datasource && uv run pytest`.
+# The connector suite deliberately mocks all four drivers — the testcontainers
+# driver dance is only worth the runtime cost once we have a CI tier that
+# actually pulls PG/MySQL/Oracle/Hive images; for now the unit suite is the
+# gate. Tests are deselect-able with ``-m "not integration"`` if a future
+# testcontainers tier is added.
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra --strict-markers --strict-config"
+testpaths = ["tests"]
+pythonpath = ["src", "tests"]
+asyncio_mode = "auto"
+markers = [
+    "integration: marks tests as integration (deselect with '-m \"not integration\"')",
+    "e2e: marks tests as end-to-end (deselect with '-m \"not e2e\"')",
+]
+
+# ---------------------------------------------------------------------------
+# coverage: hit 80% on the datasource service core. The REST API and the
+# credential service are the two highest-leverage modules to cover; the
+# connectors only need a happy-path test plus a failure-mode test per type.
+# ---------------------------------------------------------------------------
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+fail_under = 80
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]

@@ -1,0 +1,83 @@
+version: '3'
+
+vars:
+  PYTHON: uv run python
+  PORT_GATEWAY: '8000'
+  PORT_IAM: '8001'
+  PORT_AUDIT: '8002'
+  PORT_NOTIFY: '8003'
+  PORT_AGENT_GATEWAY: '8004'
+  PORT_DATASOURCE: '8005'
+  PORT_WEB: '3000'
+
+env:
+  AIDP_SERVICE_NAME: 'aidp-dev'
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+
+  setup:
+    desc: One-shot dev environment setup (deps + Postgres/Redis/Kafka via docker compose)
+    cmds:
+      - bash scripts/setup-dev.sh
+
+  lint:
+    desc: Run all linters (Python + Web)
+    cmds:
+      - uv run ruff check .
+      - uv run mypy libs/ services/
+      - cd web && pnpm lint
+
+  lint.fix:
+    desc: Auto-fix lint issues where possible
+    cmds:
+      - uv run ruff check . --fix
+      - uv run ruff format .
+
+  test:
+    desc: Run all unit tests
+    cmds:
+      - uv run pytest
+      - cd web && pnpm test
+
+  test.int:
+    desc: Run integration tests only (requires docker compose stack up)
+    cmds:
+      - uv run pytest tests/integration -v
+
+  format:
+    desc: Auto-format Python (ruff) and Web code
+    cmds:
+      - uv run ruff format .
+      - cd web && pnpm format
+
+  typecheck:
+    desc: Run mypy only
+    cmds:
+      - uv run mypy libs/ services/
+
+  precommit.install:
+    desc: Install pre-commit git hooks
+    cmds:
+      - uv run pre-commit install
+      - uv run pre-commit install --hook-type commit-msg
+
+  precommit.run:
+    desc: Run all pre-commit hooks against the working tree
+    cmds:
+      - uv run pre-commit run --all-files
+
+  uv.sync:
+    desc: Install/refresh Python dependencies (workspace level)
+    cmds:
+      - uv sync
+
+  clean:
+    desc: Remove caches and build artifacts (keeps venv)
+    cmds:
+      - rm -rf .pytest_cache .mypy_cache .ruff_cache .coverage htmlcov
+      - find . -type d -name '__pycache__' -prune -exec rm -rf {} +
+      - find . -type d -name 'node_modules' -prune -exec rm -rf {} +

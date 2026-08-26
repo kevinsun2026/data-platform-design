@@ -1,0 +1,88 @@
+// Datasource service gRPC contract (internal — agent-gateway is the only consumer).
+//
+// The agent-gateway opens a single ``grpc.aio.insecure_channel`` against
+// ``datasource:50051`` (the platform convention) and calls
+// ``DataSourceService.GetConnection`` to fetch a live, decrypted
+// connection descriptor for a registered datasource. The service
+// hands the credentials to a downstream connector driver to open a
+// real socket and run a query.
+//
+// Wire-format note: ``credentials.password`` is sent over plaintext
+// gRPC. The internal listener port is bound to the cluster's service
+// network only (no public exposure), and the platform's service-mesh
+// enforces mTLS for in-cluster traffic. A future task can add
+// ``grpc.ssl_server_credentials`` if the deployment topology changes.
+
+syntax = "proto3";
+
+package aidp.datasource.v1;
+
+option go_package = "github.com/aidp/aidp-datasource/gen/go/datasource/v1";
+
+// ---------------------------------------------------------------------------
+// Connection — the wire shape returned by GetConnection.
+// ---------------------------------------------------------------------------
+
+message Connection {
+  // Non-secret connection descriptor (host/port/database/options).
+  map<string, string> options = 1;
+  string host = 2;
+  int32 port = 3;
+  string database = 4;
+}
+
+// ---------------------------------------------------------------------------
+// Credentials — the secret half. Sent over internal gRPC only.
+// ---------------------------------------------------------------------------
+
+message Credentials {
+  string username = 1;
+  string password = 2;
+  // Driver-specific knobs (Oracle ``service_name`` / Hive ``auth``).
+  map<string, string> extra = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Datasource — the full descriptor returned by GetConnection.
+// ---------------------------------------------------------------------------
+
+message Datasource {
+  string id = 1;
+  string tenant_id = 2;
+  string name = 3;
+  // One of "postgresql" / "mysql" / "oracle" / "hive". Strings, not an
+  // enum, so the wire format stays stable across languages.
+  string kind = 4;
+  string env = 5;
+  string description = 6;
+  Connection connection = 7;
+  Credentials credentials = 8;
+  repeated string tags = 9;
+  bool enabled = 10;
+}
+
+// ---------------------------------------------------------------------------
+// Request / response
+// ---------------------------------------------------------------------------
+
+message GetConnectionRequest {
+  string datasource_id = 1;
+  // The caller supplies the tenant_id (after the gRPC layer has
+  // verified the service-to-service token). The service refuses
+  // cross-tenant lookups.
+  string tenant_id = 2;
+}
+
+message GetConnectionResponse {
+  Datasource datasource = 1;
+}
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+
+service DataSourceService {
+  // Return the live, decrypted connection descriptor for *datasource_id*.
+  // The caller is responsible for not persisting the credentials.
+  rpc GetConnection(GetConnectionRequest) returns (GetConnectionResponse);
+}

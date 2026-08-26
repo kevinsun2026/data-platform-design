@@ -1,0 +1,53 @@
+# Default values for the aidp-notify chart.
+# Override per environment by passing `--set` flags or a custom values file.
+image:
+  repository: aidp/notify
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 8003
+  targetPort: 8003
+
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
+env:
+  # Production environment defaults. Real values are injected via
+  # the platform secret store; these are placeholders so a dry-run
+  # `helm template` does not crash.
+  aidpServiceName: aidp-notify
+  aidpDbUrl: "postgresql+psycopg://notify:CHANGEME@postgres:5432/notify"
+  aidpRedisUrl: "redis://redis:6379/0"
+  aidpKafkaBrokers: "kafka:9092"
+  aidpJwtSecret: "CHANGEME-INJECT-FROM-SECRET"
+  aidpLogLevel: "INFO"
+  aidpEnv: "prod"
+
+# Probes: matches the /healthz and /readyz endpoints in
+# aidp_notify.main.create_app.
+livenessProbe:
+  httpGet:
+    path: /healthz
+    port: http
+  initialDelaySeconds: 15
+  periodSeconds: 30
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /readyz
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3

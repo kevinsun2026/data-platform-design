@@ -1,0 +1,13 @@
+apiVersion: v2
+name: aidp-iam
+description: AIDP IAM service — identity, tenants, users, roles, sessions.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - iam
+  - identity
+  - auth
+maintainers:
+  - name: AIDP Platform Team
+    email: platform@aidp.local
